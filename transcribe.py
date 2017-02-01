@@ -15,9 +15,9 @@
 # under the License.
 
 import base64
-import ConfigParser
+import configparser
 import json
-import thread
+import threading
 import time
 
 import pyaudio
@@ -34,7 +34,7 @@ CHANNELS = 1
 # Rate is important, nothing works without it. This is a pretty
 # standard default. If you have an audio device that requires
 # something different, change this.
-RATE = 44100
+RATE = 48000
 RECORD_SECONDS = 5
 
 
@@ -57,13 +57,14 @@ def read_audio(ws):
                     channels=CHANNELS,
                     rate=RATE,
                     input=True,
+                    input_device_index=6,
                     frames_per_buffer=CHUNK)
 
     print("* recording")
 
     for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
         data = stream.read(CHUNK)
-        print "Sending packet... %d" % i
+        print("Sending packet... %d" % i)
         # NOTE(sdague): we're sending raw binary in the stream, we
         # need to indicate that otherwise the stream service
         # interprets this as text control messages.
@@ -87,16 +88,16 @@ def read_audio(ws):
 
 def on_message(self, msg):
     """Print whatever messages come in."""
-    print msg
+    print(msg)
 
 
 def on_error(self, error):
     """Print any errors."""
-    print error
+    print(error)
 
 
 def on_close(ws):
-    print "### closed ###"
+    print("### closed ###")
 
 
 def on_open(ws):
@@ -119,11 +120,11 @@ def on_open(ws):
     ws.send(json.dumps(data).encode('utf8'))
     # Spin off a dedicated thread where we are going to read and
     # stream out audio.
-    thread.start_new_thread(read_audio, (ws,))
+    threading.Thread(target=read_audio, args=(ws,)).start()
 
 
 def get_auth():
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
     config.read('speech.cfg')
     user = config.get('auth', 'username')
     password = config.get('auth', 'password')
@@ -134,7 +135,7 @@ def main():
     # Connect to websocket interfaces
     headers = {}
     userpass = ":".join(get_auth())
-    headers["Authorization"] = "Basic " + base64.b64encode(userpass)
+    headers["Authorization"] = "Basic " + base64.b64encode(userpass.encode()).decode()
     url = ("wss://stream.watsonplatform.net//speech-to-text/api/v1/recognize"
            "?model=en-US_BroadbandModel")
 
