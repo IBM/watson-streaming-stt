@@ -142,7 +142,8 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Transcribe Watson text in real time')
     parser.add_argument('-t', '--timeout', type=int, default=5)
-    parser.add_argument('-d', '--device')
+    # parser.add_argument('-d', '--device')
+    # parser.add_argument('-v', '--verbose', action='store_true')
     args = parser.parse_args()
     return args
 
