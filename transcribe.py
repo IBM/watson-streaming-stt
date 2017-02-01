@@ -34,7 +34,7 @@ CHANNELS = 1
 # Rate is important, nothing works without it. This is a pretty
 # standard default. If you have an audio device that requires
 # something different, change this.
-RATE = 48000
+RATE = 44100
 RECORD_SECONDS = 5
 
 
@@ -57,7 +57,6 @@ def read_audio(ws):
                     channels=CHANNELS,
                     rate=RATE,
                     input=True,
-                    input_device_index=6,
                     frames_per_buffer=CHUNK)
 
     print("* recording")
@@ -88,6 +87,9 @@ def read_audio(ws):
 
 def on_message(self, msg):
     """Print whatever messages come in."""
+    data = json.loads(msg)
+    if "results" in data:
+        print(data["results"][0]["final"])
     print(msg)
 
 
