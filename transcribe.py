@@ -37,6 +37,7 @@ CHANNELS = 1
 # something different, change this.
 RATE = 44100
 RECORD_SECONDS = 5
+FINALS = []
 
 
 def read_audio(ws, timeout):
@@ -67,7 +68,7 @@ def read_audio(ws, timeout):
 
     for i in range(0, int(RATE / CHUNK * rec)):
         data = stream.read(CHUNK)
-        print("Sending packet... %d" % i)
+        # print("Sending packet... %d" % i)
         # NOTE(sdague): we're sending raw binary in the stream, we
         # need to indicate that otherwise the stream service
         # interprets this as text control messages.
@@ -85,16 +86,27 @@ def read_audio(ws, timeout):
     # ... which we need to wait for before we shutdown the websocket
     time.sleep(1)
     ws.close()
+
     # ... and kill the audio device
     p.terminate()
 
 
 def on_message(self, msg):
-    """Print whatever messages come in."""
+    """Print whatever messages come in.
+
+    While we are processing any non trivial stream of speech Watson
+    will start chunking results into bits of transcripts that it
+    considers "final", and start on a new stretch. It's not always
+    clear why it does this. However, it means that as we are
+    processing text, any time we see a final chunk, we need to save it
+    off for later.
+    """
     data = json.loads(msg)
     if "results" in data:
-        print(data["results"][0]["final"])
-    print(msg)
+        if data["results"][0]["final"]:
+            FINALS.append(data)
+        # This prints out the current fragment that we are working on
+        print(data['results'][0]['alternatives'][0]['transcript'])
 
 
 def on_error(self, error):
@@ -103,7 +115,10 @@ def on_error(self, error):
 
 
 def on_close(ws):
-    print("### closed ###")
+    """Upon close, print the complete and final transcript."""
+    transcript = "".join([x['results'][0]['alternatives'][0]['transcript']
+                          for x in FINALS])
+    print(transcript)
 
 
 def on_open(ws):
@@ -115,7 +130,9 @@ def on_open(ws):
         "content-type": "audio/l16;rate=%d" % RATE,
         "continuous": True,
         "interim_results": True,
-        "inactivity_timeout": 600,
+        # "inactivity_timeout": 5, # in order to use this effectively
+        # you need other tests to handle what happens if the socket is
+        # closed by the server.
         "word_confidence": True,
         "timestamps": True,
         "max_alternatives": 3
