@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import argparse
 import base64
 import configparser
 import json
@@ -38,13 +39,14 @@ RATE = 44100
 RECORD_SECONDS = 5
 
 
-def read_audio(ws):
+def read_audio(ws, timeout):
     """Read audio and sent it to the websocket port.
 
     This uses pyaudio to read from a device in chunks and send these
     over the websocket wire.
 
     """
+    global RATE
     p = pyaudio.PyAudio()
     # NOTE(sdague): if you don't seem to be getting anything off of
     # this you might need to specify:
@@ -53,6 +55,7 @@ def read_audio(ws):
     #
     # Where N is an int. You'll need to do a dump of your input
     # devices to figure out which one you want.
+    RATE = int(p.get_default_input_device_info()['defaultSampleRate'])
     stream = p.open(format=FORMAT,
                     channels=CHANNELS,
                     rate=RATE,
@@ -60,8 +63,9 @@ def read_audio(ws):
                     frames_per_buffer=CHUNK)
 
     print("* recording")
+    rec = timeout or RECORD_SECONDS
 
-    for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+    for i in range(0, int(RATE / CHUNK * rec)):
         data = stream.read(CHUNK)
         print("Sending packet... %d" % i)
         # NOTE(sdague): we're sending raw binary in the stream, we
@@ -104,7 +108,7 @@ def on_close(ws):
 
 def on_open(ws):
     """Triggered as soon a we have an active connection."""
-
+    args = ws.args
     data = {
         "action": "start",
         # this means we get to send it straight raw sampling
@@ -122,7 +126,8 @@ def on_open(ws):
     ws.send(json.dumps(data).encode('utf8'))
     # Spin off a dedicated thread where we are going to read and
     # stream out audio.
-    threading.Thread(target=read_audio, args=(ws,)).start()
+    threading.Thread(target=read_audio,
+                     args=(ws, args.timeout)).start()
 
 
 def get_auth():
@@ -133,11 +138,21 @@ def get_auth():
     return (user, password)
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Transcribe Watson text in real time')
+    parser.add_argument('-t', '--timeout', type=int, default=5)
+    parser.add_argument('-d', '--device')
+    args = parser.parse_args()
+    return args
+
+
 def main():
     # Connect to websocket interfaces
     headers = {}
     userpass = ":".join(get_auth())
-    headers["Authorization"] = "Basic " + base64.b64encode(userpass.encode()).decode()
+    headers["Authorization"] = "Basic " + base64.b64encode(
+        userpass.encode()).decode()
     url = ("wss://stream.watsonplatform.net//speech-to-text/api/v1/recognize"
            "?model=en-US_BroadbandModel")
 
@@ -153,6 +168,7 @@ def main():
                                 on_error=on_error,
                                 on_close=on_close)
     ws.on_open = on_open
+    ws.args = parse_args()
     # This gives control over the WebSocketApp. This is a blocking
     # call, so it won't return until the ws.close() gets called (after
     # 6 seconds in the dedicated thread).
