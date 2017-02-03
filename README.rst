@@ -1,6 +1,6 @@
-===============================
- Watson Speech to Text Example
-===============================
+=========================================
+ Watson Streaming Speech to Text Example
+=========================================
 
 The following is an example of using Watson to real time transcribe
 from Speech to Text using the websockets streaming API.
@@ -37,6 +37,9 @@ there.
 
 Credentials
 ===========
+
+You'll need to sign up for the `Watson STT service`_. As of Jan 2017,
+bluemix accounts get 1000 minutes / month free.
 
 In order to connect to the Watson streaming server you need username
 and password. You can find these on your bluemix console for the
@@ -111,3 +114,5 @@ of chunking the stream as we go and how it corrects with context.
 Note: nursery rhymes / poetry probably really push the context fixing
 in terrible directions, but it's the thing that I can repeat over and
 over again as a parent of a young child.
+
+.. _Watson STT service: https://console.ng.bluemix.net/catalog/services/speech-to-text/
