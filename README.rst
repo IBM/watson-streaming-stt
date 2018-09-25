@@ -38,13 +38,13 @@ there.
 Credentials
 ===========
 
-You'll need to sign up for the `Watson STT service`_. As of Jan 2017,
-bluemix accounts get 1000 minutes / month free.
+You'll need to sign up for the `Watson STT service`_. As of Sept 2018,
+IBM Cloud accounts get 100 minutes / month free.
 
-In order to connect to the Watson streaming server you need username
-and password. You can find these on your bluemix console for the
-service you have added. The username looks like a UUID, the password
-looks like a hash.
+In order to connect to the Watson streaming server you need an API Key, and to
+specify which region your speech to text service was provisioned in (there are
+different gateways per region). You can find these on your IBM Cloud console
+for the service you have added.
 
 Copy speech.cfg.example to speech.cfg to ensure that's valid.
 
