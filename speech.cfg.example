@@ -1,3 +1,4 @@
 [auth]
-username = <UUID looking thing>
-password = <HASH looking thing>
+apikey = <APIKEY>
+# Modify region based on where you provisioned your stt instance
+region = us-south

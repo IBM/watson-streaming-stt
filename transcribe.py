@@ -39,6 +39,15 @@ RATE = 44100
 RECORD_SECONDS = 5
 FINALS = []
 
+REGION_MAP = {
+    'us-east': 'gateway-wdc.watsonplatform.net',
+    'us-south': 'stream.watsonplatform.net',
+    'eu-gb': 'stream.watsonplatform.net',
+    'eu-de': 'stream-fra.watsonplatform.net',
+    'au-syd': 'gateway-syd.watsonplatform.net',
+    'jp-tok': 'gateway-syd.watsonplatform.net',
+}
+
 
 def read_audio(ws, timeout):
     """Read audio and sent it to the websocket port.
@@ -146,13 +155,22 @@ def on_open(ws):
     threading.Thread(target=read_audio,
                      args=(ws, args.timeout)).start()
 
+def get_url():
+    config = configparser.RawConfigParser()
+    config.read('speech.cfg')
+    # See
+    # https://console.bluemix.net/docs/services/speech-to-text/websockets.html#websockets
+    # for details on which endpoints are for each region.
+    region = config.get('auth', 'region')
+    host = REGION_MAP[region]
+    return ("wss://{}/speech-to-text/api/v1/recognize"
+           "?model=en-US_BroadbandModel").format(host)
 
 def get_auth():
     config = configparser.RawConfigParser()
     config.read('speech.cfg')
-    user = config.get('auth', 'username')
-    password = config.get('auth', 'password')
-    return (user, password)
+    apikey = config.get('auth', 'apikey')
+    return ("apikey", apikey)
 
 
 def parse_args():
@@ -171,8 +189,7 @@ def main():
     userpass = ":".join(get_auth())
     headers["Authorization"] = "Basic " + base64.b64encode(
         userpass.encode()).decode()
-    url = ("wss://stream.watsonplatform.net//speech-to-text/api/v1/recognize"
-           "?model=en-US_BroadbandModel")
+    url = get_url()
 
     # If you really want to see everything going across the wire,
     # uncomment this. However realize the trace is going to also do
