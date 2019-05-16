@@ -38,6 +38,7 @@ CHANNELS = 1
 RATE = 44100
 RECORD_SECONDS = 5
 FINALS = []
+LAST = None
 
 REGION_MAP = {
     'us-east': 'gateway-wdc.watsonplatform.net',
@@ -110,10 +111,14 @@ def on_message(self, msg):
     processing text, any time we see a final chunk, we need to save it
     off for later.
     """
+    global LAST
     data = json.loads(msg)
     if "results" in data:
         if data["results"][0]["final"]:
             FINALS.append(data)
+            LAST = None
+        else:
+            LAST = data
         # This prints out the current fragment that we are working on
         print(data['results'][0]['alternatives'][0]['transcript'])
 
@@ -125,6 +130,9 @@ def on_error(self, error):
 
 def on_close(ws):
     """Upon close, print the complete and final transcript."""
+    global LAST
+    if LAST:
+        FINALS.append(LAST)
     transcript = "".join([x['results'][0]['alternatives'][0]['transcript']
                           for x in FINALS])
     print(transcript)
